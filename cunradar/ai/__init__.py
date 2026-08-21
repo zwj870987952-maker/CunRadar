@@ -21,7 +21,14 @@ Rules:
 6. Output in MARKDOWN format with clear section headers.
 7. Be factual and concise - no fluff or marketing language.
 8. Total output should be 200-500 characters.
-9. If there are very few updates (0-3 items), still write a short digest."""
+9. If there are very few updates (0-3 items), still write a short digest.
+10. Write all explanations in Simplified Chinese. Keep useful original English
+    product, project, and plugin names in parentheses for searchability.
+11. For every update you mention, add a Chinese annotation explaining what
+    changed and why it matters to AI, game technology, 3D animation, Unreal
+    Engine, Autodesk Maya, animation pipelines, or production plugins.
+12. Preserve the original URL for every update you mention. Format the title
+    or a Chinese '查看原文' label as a Markdown link to that exact URL."""
 
 
 def build_user_prompt(items: list[CollectedItem], date_str: str) -> str:
@@ -32,6 +39,7 @@ def build_user_prompt(items: list[CollectedItem], date_str: str) -> str:
         published = item.published.strftime("%H:%M UTC") if item.published else "unknown time"
         lines.append(f"{i}. [{source_tag}] {item.title}")
         lines.append(f"   From: {item.source_name} | {published}")
+        lines.append(f"   URL: {item.url}")
         if item.description:
             desc = item.description[:200].replace("\n", " ")
             lines.append(f"   {desc}")

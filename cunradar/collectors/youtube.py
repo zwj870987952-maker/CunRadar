@@ -9,6 +9,7 @@ Supports two ways to specify a channel in config:
 """
 
 import re
+import time
 from datetime import datetime, timezone
 
 import feedparser
@@ -90,24 +91,39 @@ class YouTubeCollector(BaseCollector):
 
             feed_url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 
-            try:
-                resp = requests.get(
-                    feed_url,
-                    headers={
-                        "User-Agent": (
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                            "AppleWebKit/537.36 (KHTML, like Gecko) "
-                            "Chrome/120.0.0.0 Safari/537.36"
-                        ),
-                        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-                    },
-                    timeout=15,
-                )
-                resp.raise_for_status()
-                feed = feedparser.parse(resp.content)
-            except Exception as e:
-                print(f"  [YouTube] Failed to fetch '{name}': {e}")
+            feed = None
+            last_error = None
+            for attempt in range(3):
+                try:
+                    resp = requests.get(
+                        feed_url,
+                        headers={
+                            "User-Agent": (
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                "Chrome/120.0.0.0 Safari/537.36"
+                            ),
+                            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+                        },
+                        timeout=15,
+                    )
+                    resp.raise_for_status()
+                    parsed = feedparser.parse(resp.content)
+                    if parsed.bozo and not parsed.entries:
+                        raise RuntimeError("YouTube returned an invalid feed")
+                    feed = parsed
+                    break
+                except Exception as e:
+                    last_error = e
+                    if attempt < 2:
+                        time.sleep(2 ** (attempt + 1))
+
+            if feed is None:
+                print(f"  [YouTube] Failed to fetch '{name}' after retries: {last_error}")
                 continue
+
+            # Avoid triggering YouTube's shared-IP throttling on CI runners.
+            time.sleep(1)
 
             if feed.bozo and not feed.entries:
                 print(f"  [YouTube] No entries for '{name}' (bad feed)")
