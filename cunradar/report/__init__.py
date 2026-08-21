@@ -103,6 +103,14 @@ def generate_html(
     # Convert AI digest markdown to simple HTML paragraphs
     import re
 
+    def convert_inline_markdown(text: str) -> str:
+        text = re.sub(
+            r"\[([^\]]+)\]\((https?://[^)\s]+)\)",
+            r'<a href="\2" target="_blank" rel="noopener">\1</a>',
+            text,
+        )
+        return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+
     digest_html = ""
     if digest:
         for line in digest.strip().split("\n"):
@@ -113,14 +121,13 @@ def generate_html(
             heading_match = re.match(r"^(#{1,6})\s+(.+)$", line)
             if heading_match:
                 level = len(heading_match.group(1))
-                digest_html += f"<h{level}>{heading_match.group(2)}</h{level}>"
+                heading = convert_inline_markdown(heading_match.group(2))
+                digest_html += f"<h{level}>{heading}</h{level}>"
             elif line.startswith("- ") or line.startswith("* "):
-                # Also convert **bold** in list items
-                text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line[2:])
+                text = convert_inline_markdown(line[2:])
                 digest_html += f"<li>{text}</li>"
             else:
-                # Convert **bold** to <strong>
-                line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
+                line = convert_inline_markdown(line)
                 digest_html += f"<p>{line}</p>"
         digest_html = f'<div class="digest">{digest_html}</div>'
 
