@@ -91,7 +91,20 @@ class YouTubeCollector(BaseCollector):
             feed_url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 
             try:
-                feed = feedparser.parse(feed_url)
+                resp = requests.get(
+                    feed_url,
+                    headers={
+                        "User-Agent": (
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                            "AppleWebKit/537.36 (KHTML, like Gecko) "
+                            "Chrome/120.0.0.0 Safari/537.36"
+                        ),
+                        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+                    },
+                    timeout=15,
+                )
+                resp.raise_for_status()
+                feed = feedparser.parse(resp.content)
             except Exception as e:
                 print(f"  [YouTube] Failed to fetch '{name}': {e}")
                 continue
