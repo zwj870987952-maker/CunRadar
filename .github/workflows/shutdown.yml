@@ -1,0 +1,23 @@
+name: CunRadar Shutdown
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shutdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Publish shutdown page
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT_NAME: ${{ vars.CUNRADAR_PROJECT_NAME || 'cunradar' }}
+        run: |
+          mkdir shutdown-site
+          printf '%s' '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>CunRadar 已关停</title><body style="font-family:system-ui;max-width:640px;margin:15vh auto;padding:24px"><h1>CunRadar 已关停</h1><p>自动采集与 AI 摘要服务已停止。</p></body></html>' > shutdown-site/index.html
+          printf '%s\n' 'User-agent: *' 'Disallow: /' > shutdown-site/robots.txt
+          npx --yes wrangler pages deploy shutdown-site --project-name="$PROJECT_NAME" --branch=main --commit-dirty=true
